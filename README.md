@@ -95,16 +95,20 @@ But how do I make sure that there is no typo in there?
 Maybe print out the the nodes and double-check:
 
 ```c
-// print node info 
 void printnodes() {
+   std::cout << " ";
    for (int i=0; i<numberofnodes; i++)
-      std::cout << char(i+'A') << "=" << int(nodes[i]) << " ";
+      std::cout << " " << char(i+'A') << " ";
+   std::cout << std::endl << " ";
+   for (int i=0; i<numberofnodes; i++)
+      std::cout << std::setw(2) << int(nodes[i]) << " ";
    std::cout << std::endl;
 }
 ```
 gives a list of node names with numbers - yes - this looks good!
 ```
-A=17 B=3 C=0 D=0 E=0 F=54 G=0 H=60 I=49 J=0 K=79 L=0 M=75 N=0 O=39 P=29 Q=25 R=0
+  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R 
+ 17  3  0  0  0 54  0 60 49  0 79  0 75  0 39 29 25  0
 ```
 
 ### Input definition - the edges
@@ -184,7 +188,7 @@ AB AC BD CD EF CF KF FH GH HI KH MH DI IJ MI LK OK KP MN OP PQ MQ QR RO
  0  0  0 12  0  0  0  0  0  0 24  0  0  0 20  0  7  0  0  0  0  0  0  0
 ```
 Check successful!
-I used this function a lot for debugging. With `pos` being set to a position, I can also illustrate where we are currently. For `pos=2` this would give some lines around 'BD'. Nice to watch when thousands scroll by. 
+The printing function looks rather complex from the output formatting. I used this function a lot for debugging. With `pos` being set to a position, I can also illustrate where we are currently. For `pos=2` this would give some lines around 'BD'. Nice to watch when thousands of lines scroll by. 
 
 ```
 AB AC|BD|CD EF CF KF FH GH HI KH MH DI IJ MI LK OK KP MN OP PQ MQ QR RO
@@ -242,74 +246,66 @@ If you do not look closely, you will search for a while why this is showing all 
 Only if you look closely, you can see that 7, 12, 20 and 24 are already missing from the list.
 
 In principle, this function could be run for every step, over and over. 
-I decided to keep track of numbers used and updated the available numbers array each time a number was used or given back. This gave another 5% speed increase.
+This is a needless computation and I decided to keep track of numbers used.
+The available numbers array is updated each time a number was used or given back. 
+This gave another 5% speed increase.
 
 
-### check node sums - O(n*m)
+### check the node sums 
 
-I need a function that goes through every node and sees if the sums are correct/exceeded already.
-This is going to be a O(n*m) problem (n number of nodes, m number of edges), 
-but with 18*24 this could still be okay-ish.
-We have an iteration over all n nodes (and skip if there is no node-sum requirement for this node).
-For each node we check all edges. 
-If a node-number is used either as source `conn[i][0]` or as destination `conn[i][1]` (we don't care, our graph is undirected). We need to keep track in two ways:
-- what is the sum for this node?
-- do we still have a 0  weight in the edges? then we are not done and the sum will increase int he future
+I need a function that goes through the nodes and sees if the sums are correct/exceeded already.
+Checking all nodes would be O(n*m) problem (n number of nodes, m number of edges).
+However, while writing this, I realized that when changing a single edge, only two nodes will be affected.
+Instead of checking all nodes, checking just the two updated notes got me a 5x speedup.
+When updating an edge, we need to run this check for both nodes `conn[i][0]` and `conn[i][1]`.
 
-The second half of this function will analyze and print the results:
-- allcomplete: all eddged for this node have a number assigned.
-  - the computed sum is the correct sum as expected. good!
-  - the sum does not match, we can abort. What we currently have is not a solution
-- not all complete: this node has still some edges that are unkown and show 0
-  - we expect the sum of all edges to this node to be smaller than the desired node sum. If so, ok - we need to wait.
-  - if not, the sum is already too large and the can abort. Filling the other edges would only increase the sum later on. 
+The node check involves two aspects:
+- what is the sum for this node so far? 
+- do we still have a 0  weight in the edges? IF so, we are not done and the sum will increase in the future
 
 ```c
-bool checknodesums() {
+// check if we have violated a sum
+bool checknodesum(int node) {
+    totalcount ++;
 
-    for (int node=0; node<numberofnodes; node++) {
-        if (nodes[node] == 0) {
-            // no requirement for this node
-            continue;
-        }
-        int nodesum = 0;
-        bool allcomplete = true;
-        for (int i=0; i<numberofconns; i++) {
-            if ((conns[i][0] == node) || (conns[i][1] == node)) {
-                nodesum += conns[i][2];
-                if (conns[i][2] == 0)
-                    allcomplete = false;
-            }
-        }
-        // std::cout << "node " << char(node+'A') << " = " << std::setw(2) << nodesum << " ";
-        if (allcomplete) {
-            if (nodesum == nodes[node]) {
-                // std::cout << "    complete and ok" << std::endl;
-            }
-            else {
-                // std::cout << "    complete but wrong sum!" << std::endl;             
-                return false;
-            }
-
-        }
-        else {
-            if (nodesum < nodes[node]) {
-                // std::cout << "not complete, still small enough" << std::endl;
-            }
-            else {
-                // std::cout << "not complete, number too high!" << std::endl;          
-                return false;
-            }
-
-        }
-
+    if (nodes[node] == 0) {
+        return true; // no sum requirement for this node
     }
+    int nodesum = 0;
+    bool allcomplete = true;
+    for (int i=0; i<numberofconns; i++) {
+        if ((conns[i][0] == node) || (conns[i][1] == node)) {
+            nodesum += conns[i][2];
+            if (conns[i][2] == 0)
+                allcomplete = false;
+        }
+    }
+
+    if (allcomplete) {
+        if (nodesum != nodes[node]) {
+            return false; // node is complete, but wrong sum
+        }
+    }
+    else {
+        if (nodesum >= nodes[node]) {
+            return false; // node incomplete, but number too high
+        }
+    }
+
     return true;
 }
 ```
 
-### check node sums - O(m+n)
-It might be possible..?
+The second half of this function will analyze the results:
+- allcomplete: all eddges for this node have a number assigned.
+  - the sum does not match, we can abort. What we currently have is not a solution
+  - else: the computed sum is the correct sum as expected. good!
+- not allcomplete: this node has still some edges that are unkown and show 0
+  - if the sum of edges is already at or above, we know it is already too large and the can abort. Filling the other edges would only increase the sum later on. 
+  - else: can be ok - we need to wait.
+
+
+
 
 ### put a number and see if it works
 Here is where the backtracking magic happens. 
