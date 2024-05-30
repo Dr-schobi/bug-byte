@@ -13,7 +13,7 @@ Spoiler warning: I won't post the solution, but I'm certainly going to reveal cl
 
 
 
-## first observations:
+## First observations:
 - This looks quite unstructured - I gave the nodes some names with letters A through R. See my drawing above.
 
 - some instrcutions where a little unclear (for me, as a non graph theorist):
@@ -26,10 +26,10 @@ Spoiler warning: I won't post the solution, but I'm certainly going to reveal cl
   Then edge AC can be 15 or 16. The condition for C to have a route to anywhere with sum 19 does not help here.
   I quickly lost track of which number I already spent.  It's time to kill it with iron - use more compute!
 
-## try all combinations with python
+## Try all combinations with python
 In my day job, I'm working in python "all the time". 
 But this is for glue code, bugfixing, for extending other peoples work. 
-I've never worked with graphs in python before - but how hard can it be?
+I've never worked with graphs or performance code in python before - but how hard can it be?
 I represented the graph as a list of nodes and a list of edges/connections.
 In the end I got this to evaluate about 10 combinations per msec on my old Celeron N4100.
 Nothing to be proud of ...
@@ -48,19 +48,21 @@ I dont see a need to write C++ objects and abstractions.
 We've got maybe ~150 bytes to manage - if we dont waste, its going to be stay in the CPU chace and be faaaaaaast!
 
 
-### setup
+### Setup
 
-I'm using gcc with a makefile
+I'm using gcc with a makefile on an old Ubuntu 20.04 Intel Celeron N4100
 
 ```make
 bug: bug.cpp
         gcc -Wall -O3 -o bug bug.cpp -lstdc++
 ```
 
-and the following includes:
+and the `bug.cpp` file with following includes:
 ```c
 #include <iostream>
 #include <iomanip>
+
+int totalcount = 0; // show how many checks we performed
 ```
 
 
@@ -162,7 +164,7 @@ AB AC|BD|CD EF CF KF FH GH HI KH MH DI IJ MI LK OK KP MN OP PQ MQ QR RO
  0  0| 0|12  0  0  0  0  0  0 24  0  0  0 20  0  7  0  0  0  0  0  0  0
 ```
 
-### Which numbers are available?
+### Checking functions - which numbers are available?
 
 We are only allowed to use each number from 1-24 once. Somehow we need to keep track of this.
 This is ripe for a off-by-one adressing problem - I'll better associate a 25 array for numbers that can be used 
@@ -214,7 +216,7 @@ This is a needless computation and I decided to keep track of the numbers used.
 The available numbers array is updated each time a number n was used `numbers[n] = 0;` or given back `numbers[n] = 1;`. This gave another performance increase.
 
 
-### check the node sums 
+### Checking functions - the node sums 
 
 I need a function that goes through the nodes and sees if the sums are correct/exceeded already.
 Checking all nodes would be O(n*m) problem (n number of nodes, m number of edges).
@@ -269,7 +271,7 @@ The second half of this function will analyze the results:
 
 
 
-### put a number and see if it works
+### Backtracking - put a number and see if it works
 Here is where the backtracking magic happens. 
 We'll put in the next available number and see if the sums are still good.
 If yes - contine and put the next number (recursively).
@@ -321,7 +323,7 @@ void fillandtest(int pos) {
 }
 ```
 
-### results
+### Results - putting it together
 
 Okay - finally the main function for calling all the others:
 ```c
@@ -370,7 +372,7 @@ Edge G-H: the special restriction on this edge can be "solved" manually
 - I thus added  `conns[8][2]=6` to the initizalization
 
 
-## thoughts
+## Closing thoughts
 
 - That was a fun exercise and I took a few detours in adding checks and more debugging.
   It is rare, that I'm able to spend a rainy day at the computer and dig deep into a challenge.
