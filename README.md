@@ -33,12 +33,14 @@ In the end I got this to evaluate about 10 combinations per msec on my old Celer
 Nothing to be proud of ...
 
 
-## my solution with C and a little ++
+## My solution with C and a little C++
 
 I decided to use a compact internal representation as a 24 length char array.
 This should be plenty to store all weights (no numbers >200, no negative numbers).
+I dont see a need to write C++ objects and abstractions. 
+We've got maybe ~150 bytes to manage - if we dont waste, its going to be stay in the CPU chace and be faaaaaaast!
 
-### define the input
+### Input definition - the nodes
 
 For each node I need to know the desired sum of edges.
 The node names 'A' to 'R' are simply the index into the array and `node[5]` will tell 
@@ -82,10 +84,12 @@ gives a list of node names with numbers - yes - this looks good!
 A=17 B=3 C=0 D=0 E=0 F=54 G=0 H=60 I=49 J=0 K=79 L=0 M=75 N=0 O=39 P=29 Q=25 R=0
 ```
 
+### Input definition - the edges
+
 I also need to define the edges of the graph. 
 Each edge is identified by two node names and a weight. I just put zero if it is not yet set.
 Ideally, I would like to store a node as chars `{1, 2, 5}` which will be a pain to read.
-I chose to write down the asci character numbers of the names like this:
+I chose to write down the ASCII character numbers of the names like this:
 
 ```c
 int numberofconns=24;
@@ -156,14 +160,91 @@ The second line then prints the current weight of the edge.
 AB AC BD CD EF CF KF FH GH HI KH MH DI IJ MI LK OK KP MN OP PQ MQ QR RO
  0  0  0 12  0  0  0  0  0  0 24  0  0  0 20  0  7  0  0  0  0  0  0  0
 ```
-I used this function a lot for debugging. With `pos` being set to a position, I can also illustrate where we are currently. For `pos=2` this would give some lines around 'BD': 
+Check successful!
+I used this function a lot for debugging. With `pos` being set to a position, I can also illustrate where we are currently. For `pos=2` this would give some lines around 'BD'. Nice to watch when thousands scroll by. 
 
 ```
 AB AC|BD|CD EF CF KF FH GH HI KH MH DI IJ MI LK OK KP MN OP PQ MQ QR RO
  0  0| 0|12  0  0  0  0  0  0 24  0  0  0 20  0  7  0  0  0  0  0  0  0
 ```
 
+## Which numbers are available?
 
+We are only allowed to use each number from 1-24 once. Somehow we need to keep track of this.
+This is ripe for a off-by-one adressing problem - I'll better associate a 25 array for numbers that can be used 
+('1' if number is available, '0' if number is not available).
+Using a char for each number is a little excessive, as we would only need a single bit per number only. 
+But using individual bits of a 32bit integer would be much more complex and likely not any faster.
+
+```
+char numbers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+
+// check which numbers are available
+void updateavailablenumbers() {
+    // clear availablenumbers
+    for (int i=1; i<numberofnumbers; i++) {
+        numbers[i] = 1;
+    }
+    // scan all conns
+    for (int i=0; i<numberofconns; i++) {
+        if (conns[i][2] > 0) {
+            numbers[ conns[i][2] ] = 0;
+        }
+    }
+    
+    // analyze and print
+    std::cout << "available numbers: ";
+    int count=0;
+    for (int i=1; i<numberofnumbers; i++) {
+        if (numbers[i] == 1) {
+            std::cout << i << " ";
+            count++;
+        }
+    }
+    std::cout << std::endl;
+    std::cout << " (" << count << " total)" << std::endl;
+
+}
+```
+
+At the start, this gives me the following list:
+
+```
+available numbers: 1 2 3 4 5 6 8 9 10 11 13 14 15 16 17 18 19 21 22 23 
+ (20 total)
+```
+If you do not look closely, you will search for a while why this is showing all numbers and not working properly.
+Only if you look closely, you can see that 7, 12, 20 and 24 are already missing from the list.
+
+In principle, this function could be run for every step, over and over. 
+I decided to keep track of numbers used and updated the available numbers array each time a number was used or given back. This gave another 5% speed increase.
+
+
+## check node sums
+
+I need a function that goes through every node and sees if the sums are correct.
+This is going to be a O(n*m) problem (n number of nodes, m number of edges), 
+but with 18*24 this could still be okay-ish.
+
+
+
+
+## put a number and see if it works
+
+
+## results
+
+On my outdated Celeron N4100 this runs in 5.5 seconds.
+Brute forcing this problem seemed to be okay.
+
+At first I got a larger list of matches. But remember? 
+There were special conditions that I neglected.
+
+Checking of the results
+- as expected, A-B-D was always 1 and 2
+- among others, for edge GH the solutions 3, 4 and 5 were proposed. But that would not fit the 6 "non-self-intersecing path" requirement. 
 
 
 
