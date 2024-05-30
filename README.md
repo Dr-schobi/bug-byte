@@ -71,25 +71,9 @@ me that node F needs a sum of 54.
 For `node[3]` there is 0 given (as there is no edge sum check possible).
 
 ```c
+//                A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   P   Q   R
+char nodes[] = { 17,  3,  0,  0,  0, 54,  0, 60, 49,  0, 79,  0, 75,  0, 39, 29, 25,  0}; 
 int numberofnodes=18;
-char nodes[] = { 17, // A
-                  3, // B
-                  0, // C
-                  0, // D
-                  0, // E
-                 54, // F
-                  0, // G
-                 60, // H
-                 49, // I
-                  0, // J
-                 79, // K
-                  0, // L
-                 75, // M
-                  0, // N
-                 39, // O
-                 29, // P
-                 25, // Q
-                  0}; // R
 ```
 But how do I make sure that there is no typo in there?
 Maybe print out the the nodes and double-check:
@@ -119,31 +103,13 @@ Ideally, I would like to store a node as chars `{1, 2, 5}` which will be a pain 
 I chose to write down the ASCII character numbers of the names like this:
 
 ```c
+unsigned char conns[24][3] = { {'A', 'B', 0}, {'A', 'C', 0}, {'B', 'D',  0}, {'C', 'D', 12},
+                               {'E', 'F', 0}, {'C', 'F', 0}, {'K', 'F',  0}, {'F', 'H',  0},
+                               {'G', 'H', 0}, {'H', 'I', 0}, {'K', 'H', 24}, {'M', 'H',  0}, 
+                               {'D', 'I', 0}, {'I', 'J', 0}, {'M', 'I', 20}, {'L', 'K',  0},
+                               {'O', 'K', 7}, {'K', 'P', 0}, {'M', 'N',  0}, {'O', 'P',  0},
+                               {'P', 'Q', 0}, {'M', 'Q', 0}, {'Q', 'R',  0}, {'R', 'O',  0} };
 int numberofconns=24;
-unsigned char conns[24][3] = { {'A', 'B', 0},
-                               {'A', 'C', 0},
-                               {'B', 'D', 0},
-                               {'C', 'D', 12},
-                               {'E', 'F', 0},
-                               {'C', 'F', 0},
-                               {'K', 'F', 0},
-                               {'F', 'H', 0},
-                               {'G', 'H', 0},
-                               {'H', 'I', 0},
-                               {'K', 'H', 24},
-                               {'M', 'H', 0},
-                               {'D', 'I', 0},
-                               {'I', 'J', 0},
-                               {'M', 'I', 20},
-                               {'L', 'K', 0},
-                               {'O', 'K', 7},
-                               {'K', 'P', 0},
-                               {'M', 'N', 0},
-                               {'O', 'P', 0},
-                               {'P', 'Q', 0},
-                               {'M', 'Q', 0},
-                               {'Q', 'R', 0},
-                               {'R', 'O', 0} };
 ```
 The result is a 2D char (byte) array with numbers for the ASCII chars from 'A' 65 and above. 
 That is nice to read, but weird for processing. 
@@ -161,7 +127,6 @@ And again, I need to check that this is correct:
 
 ```c
 void printconns(int pos = 100) {
-
    for (int i=0; i<numberofconns; i++) {
        if ((pos == i) || (pos == i-1)) std::cout << "|";
        else std::cout << " ";
@@ -206,6 +171,7 @@ But using individual bits of a 32bit integer would be much more complex and like
 ```
 char numbers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int numberofnumbers=25;
 
 
 // check which numbers are available
@@ -239,16 +205,14 @@ void updateavailablenumbers() {
 At the start, this gives me the following list:
 
 ```
-available numbers: 1 2 3 4 5 6 8 9 10 11 13 14 15 16 17 18 19 21 22 23 
- (20 total)
+available numbers: 1 2 3 4 5 6 8 9 10 11 13 14 15 16 17 18 19 21 22 23   (20 total)
 ```
 If you do not look closely, you will search for a while why this is showing all numbers and not working properly.
 Only if you look closely, you can see that 7, 12, 20 and 24 are already missing from the list.
 
 In principle, this function could be run for every step, over and over. 
-This is a needless computation and I decided to keep track of numbers used.
-The available numbers array is updated each time a number was used or given back. 
-This gave another 5% speed increase.
+This is a needless computation and I decided to keep track of the numbers used.
+The available numbers array is updated each time a number n was used `numbers[n] = 0;` or given back `numbers[n] = 1;`. This gave another performance increase.
 
 
 ### check the node sums 
@@ -261,7 +225,7 @@ When updating an edge, we need to run this check for both nodes `conn[i][0]` and
 
 The node check involves two aspects:
 - what is the sum for this node so far? 
-- do we still have a 0  weight in the edges? IF so, we are not done and the sum will increase in the future
+- do we still have a 0  weight in the edges? If so, we are not done and the sum will increase in the future
 
 ```c
 // check if we have violated a sum
@@ -309,43 +273,121 @@ The second half of this function will analyze the results:
 
 ### put a number and see if it works
 Here is where the backtracking magic happens. 
-
-I'll put the next available number and see if the sums are still good.
+We'll put in the next available number and see if the sums are still good.
 If yes - contine and put the next number (recursively).
 If not, remove the number and try another one.
 
+We have a function that operates on edge number `pos`, starting from 0. In case of success,
+the function fillandtest is called for the next edge.
+First of all, there are some checks needed:
+- if we reached the end of the edge list, we are done. Hooray - we found a solution!
+- if the current edge number if already filled - good, go to the next.
 
+Then we iterate through all numbers.
+First of all - check if the number is still available.
+
+The special condition were added - this repects some of the "non-self-intersecting path" requirements.
+Without them, there would be 48 possible solutions to the puzzle.
+Checking thise simple condition reduced the candidates to just 2 (which I later checked manually... yea - lazy)
+
+```c
+void fillandtest(int pos) {
+    if (pos == numberofconns) {
+        std::cout << "success! this is the end:" << std::endl;
+        printconns(pos);
+        return;
+    }
+
+    if (conns[pos][2]>0) {
+        return fillandtest(pos+1); // was already filled
+    }
+
+    for (int n=1; n<numberofnumbers; n++) {
+        if (numbers[n] == 0) continue;
+
+        // special J-I, pos 13, needs to be 8 or less
+        if (pos==13) {
+           if (n>8) continue;
+        }
+
+        // set number and check
+        conns[pos][2] = n;
+        numbers[n] = 0;
+        if (checknodesum( conns[pos][0] ) && checknodesum( conns[pos][1] )) {
+            fillandtest(pos+1);
+        }
+        // roll back
+        numbers[n] = 1;
+        conns[pos][2] = 0;
+
+    }
+}
+```
 
 ### results
 
-On my outdated Celeron N4100 this runs in ~2.4 seconds.
+Okay - finally the main function for calling all the others:
+```c
+int main() {
+   // prepare correct indices, 'A' -> 0
+   for (int i=0; i<24; i++) {
+       conns[i][0] -= 'A';
+       conns[i][1] -= 'A';
+   }
+
+   printnodes();
+   printconns();
+
+   // known from restrictions on G-H
+   conns[8][2] = 6;
+
+   updateavailablenumbers();
+   fillandtest(0);
+
+   std::cout << "total count " << totalcount << std::endl;
+   return 0;
+}
+```
+
+On my outdated Celeron N4100 with Ubuntu 20.04 this now runs in ~0.22 seconds.
 Brute forcing this problem seemed to be okay.
-In the end, the printing of millions of rows was sloing things down.
+In between, the first succcessful C++ version ran for ~5 seconds,
+but mostly printing of millions of rows was slowing things down.
 
 At first I got a larger list of matches. But remember? 
-There were special conditions that I neglected.
+There were special conditions that I neglected at first.
 
 With manual visual checking of the results, I got the following:
 - as expected, A-B-D was always 1 and 2
-- for edge G-H, among others, the solutions 3, 4 and 5 were proposed. But that would not fit the 6 "non-self-intersecing path" requirement. I added the condition to exclude 3, 5 and >6 for node GH.
+- without the G-H restriction, I found 48 solutions. Those pointed me to the G-H problem and
+  I could refine the initialization.
 - for edge J-I also got numbers >8. I added a condition that disallows numbers >8 for this node
-- finally, I was down to two solutions that had E-f and C-F swapped. Only one of them matched the special conditions for nodes E amd C. 
+- finally, I was down to two solutions that had E-f and C-F swapped. Only one of them matched the special conditions for nodes E amd C. Then only a single unique solution is left.
+
+
+Edge G-H: the special restriction on this edge can be "solved" manually
+- for the non-self-intersecting path, a path of sum 6 is required. The node G-H thus cannot be >6
+- the numbers 1 and 2 are already used around node B, so 1 and 5 as well as 2 and 4 are not possible
+- 3 would be possible, but then the sum of 3 is not possible
+- I thus added  `conns[8][2]=6` to the initizalization
 
 
 ## thoughts
 
 - That was a fun exercise and I took a few detours in adding checks and more debugging.
   It is rare, that I'm able to spend a rainy day at the computer and dig deep into a challenge.
-    
+  Why I ended up running an early version for 35 minutes in Python is beyond me.
+  Maybe it's just that I'm feeling more at home with the bytes directly.
 
-- I'm still repeating a lot of computation. 
-  It was good to start this way and implement checks all over the place.
-  
+- Maybe this is still duplicating computations. I'm out of ideas for now on how to speed up.
+  It was a good strategy to start with duplicate computation and excessive checks and optimize along the way.
+  I'm curious about other solutions and results. 
+  I would be happy to see and discuss other solutions and I'm certainly willing to share my code!
+  Let me know of a [BRC](https://1brc.dev/) type of scoreboard.
+
+- Please contact me if anything is unclear. 
+  If you find the readthrough interesting, let me know.
+
 - That code might even run well on a microcontroller!
 
-- I'm curious about other solutions and results. 
-  I would be happy to see and discuss other solutions and I'm certainly willing to share my code!
-  let me know of a [BRC](https://1brc.dev/) type of scoreboard.
-
-Please contact me if anything is unclear 
 
