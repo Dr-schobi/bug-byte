@@ -35,10 +35,33 @@ Nothing to be proud of ...
 
 ## My solution with C and a little C++
 
+Okay - let's try all combinations - how hard can it be?
+I'll use a backtracking approach that puts a number, sees if it matches the conditions and trys the next one.
+(Backtracking is nicely explained in the [Computerphile Sudoku solver](https://www.youtube.com/watch?v=G_UYXzGuqvM) video).
+
+
 I decided to use a compact internal representation as a 24 length char array.
 This should be plenty to store all weights (no numbers >200, no negative numbers).
 I dont see a need to write C++ objects and abstractions. 
 We've got maybe ~150 bytes to manage - if we dont waste, its going to be stay in the CPU chace and be faaaaaaast!
+
+
+### setup
+
+I'm using gcc with a makefile
+
+```make
+bug: bug.cpp
+        gcc -Wall -O3 -o bug bug.cpp -lstdc++
+```
+
+and the following includes:
+```c
+#include <iostream>
+#include <iomanip>
+```
+
+
 
 ### Input definition - the nodes
 
@@ -93,30 +116,30 @@ I chose to write down the ASCII character numbers of the names like this:
 
 ```c
 int numberofconns=24;
-char conns[24][3] = { {'A', 'B', 0},
-                      {'A', 'C', 0},
-                      {'B', 'D', 0},
-                      {'C', 'D', 12},
-                      {'E', 'F', 0},
-                      {'C', 'F', 0},
-                      {'K', 'F', 0},
-                      {'F', 'H', 0},
-                      {'G', 'H', 0},
-                      {'H', 'I', 0},
-                      {'K', 'H', 24},
-                      {'M', 'H', 0},
-                      {'D', 'I', 0},
-                      {'I', 'J', 0},
-                      {'M', 'I', 20},
-                      {'L', 'K', 0},
-                      {'O', 'K', 7},
-                      {'K', 'P', 0},
-                      {'M', 'N', 0},
-                      {'O', 'P', 0},
-                      {'P', 'Q', 0},
-                      {'M', 'Q', 0},
-                      {'Q', 'R', 0},
-                      {'R', 'O', 0} };
+unsigned char conns[24][3] = { {'A', 'B', 0},
+                               {'A', 'C', 0},
+                               {'B', 'D', 0},
+                               {'C', 'D', 12},
+                               {'E', 'F', 0},
+                               {'C', 'F', 0},
+                               {'K', 'F', 0},
+                               {'F', 'H', 0},
+                               {'G', 'H', 0},
+                               {'H', 'I', 0},
+                               {'K', 'H', 24},
+                               {'M', 'H', 0},
+                               {'D', 'I', 0},
+                               {'I', 'J', 0},
+                               {'M', 'I', 20},
+                               {'L', 'K', 0},
+                               {'O', 'K', 7},
+                               {'K', 'P', 0},
+                               {'M', 'N', 0},
+                               {'O', 'P', 0},
+                               {'P', 'Q', 0},
+                               {'M', 'Q', 0},
+                               {'Q', 'R', 0},
+                               {'R', 'O', 0} };
 ```
 The result is a 2D char (byte) array with numbers for the ASCII chars from 'A' 65 and above. 
 That is nice to read, but weird for processing. 
@@ -222,32 +245,103 @@ In principle, this function could be run for every step, over and over.
 I decided to keep track of numbers used and updated the available numbers array each time a number was used or given back. This gave another 5% speed increase.
 
 
-## check node sums
+## check node sums - O(n*m)
 
-I need a function that goes through every node and sees if the sums are correct.
+I need a function that goes through every node and sees if the sums are correct/exceeded already.
 This is going to be a O(n*m) problem (n number of nodes, m number of edges), 
 but with 18*24 this could still be okay-ish.
+We have an iteration over all n nodes (and skip if there is no node-sum requirement for this node).
+For each node we check all edges. 
+If a node-number is used either as source `conn[i][0]` or as destination `conn[i][1]` (we don't care, our graph is undirected). We need to keep track in two ways:
+- what is the sum for this node?
+- do we still have a 0  weight in the edges? then we are not done and the sum will increase int he future
 
+The second half of this function will analyze and print the results:
+- allcomplete: all eddged for this node have a number assigned.
+  - the computed sum is the correct sum as expected. good!
+  - the sum does not match, we can abort. What we currently have is not a solution
+- not all complete: this node has still some edges that are unkown and show 0
+  - we expect the sum of all edges to this node to be smaller than the desired node sum. If so, ok - we need to wait.
+  - if not, the sum is already too large and the can abort. Filling the other edges would only increase the sum later on. 
 
+```c
+bool checknodesums() {
 
+    for (int node=0; node<numberofnodes; node++) {
+        if (nodes[node] == 0) {
+            // no requirement for this node
+            continue;
+        }
+        int nodesum = 0;
+        bool allcomplete = true;
+        for (int i=0; i<numberofconns; i++) {
+            if ((conns[i][0] == node) || (conns[i][1] == node)) {
+                nodesum += conns[i][2];
+                if (conns[i][2] == 0)
+                    allcomplete = false;
+            }
+        }
+        // std::cout << "node " << char(node+'A') << " = " << std::setw(2) << nodesum << " ";
+        if (allcomplete) {
+            if (nodesum == nodes[node]) {
+                // std::cout << "    complete and ok" << std::endl;
+            }
+            else {
+                // std::cout << "    complete but wrong sum!" << std::endl;             
+                return false;
+            }
+
+        }
+        else {
+            if (nodesum < nodes[node]) {
+                // std::cout << "not complete, still small enough" << std::endl;
+            }
+            else {
+                // std::cout << "not complete, number too high!" << std::endl;          
+                return false;
+            }
+
+        }
+
+    }
+    return true;
+}
+```
+
+## check node sums - O(m+n)
+It might be possible..?
 
 ## put a number and see if it works
+Here is where the backtracking magic happens. 
+
+I'll put the next available number and see if the sums are still good.
+If yes - contine and put the next number (recursively).
+If not, remove the number and try another one.
+
 
 
 ## results
 
-On my outdated Celeron N4100 this runs in 5.5 seconds.
+On my outdated Celeron N4100 this runs in ~2.4 seconds.
 Brute forcing this problem seemed to be okay.
 
 At first I got a larger list of matches. But remember? 
 There were special conditions that I neglected.
 
-Checking of the results
+With manual visual checking of the results, I got the following:
 - as expected, A-B-D was always 1 and 2
-- among others, for edge GH the solutions 3, 4 and 5 were proposed. But that would not fit the 6 "non-self-intersecing path" requirement. 
+- for edge G-H, among others, the solutions 3, 4 and 5 were proposed. But that would not fit the 6 "non-self-intersecing path" requirement. I added the condition to exclude 3, 5 and >6 for node GH.
+- for edge J-I also got numbers >8. I added a condition that disallows numbers >8 for this node
+- finally, I was down to two solutions that had E-f and C-F swapped. Only one of them matched the special conditions for nodes E amd C. 
+
+## thoughts
+
+- that was a fun exercise and I took a few detours in adding checks and more debugging.
+  In the end, the printing of millins of rows was sloing things down.
+
+- I'm repeating a lot of computation. It was good to start this way and implement checks all over the place. It might be even quicker to keep track of the sum of each node.
+- that might even run well on a microcontroller!
 
 
-
-
-
+Please contact me if anything is unclear - I would be happy to hear your results!
 
