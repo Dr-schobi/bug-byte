@@ -191,7 +191,7 @@ AB AC|BD|CD EF CF KF FH GH HI KH MH DI IJ MI LK OK KP MN OP PQ MQ QR RO
  0  0| 0|12  0  0  0  0  0  0 24  0  0  0 20  0  7  0  0  0  0  0  0  0
 ```
 
-## Which numbers are available?
+### Which numbers are available?
 
 We are only allowed to use each number from 1-24 once. Somehow we need to keep track of this.
 This is ripe for a off-by-one adressing problem - I'll better associate a 25 array for numbers that can be used 
@@ -245,7 +245,7 @@ In principle, this function could be run for every step, over and over.
 I decided to keep track of numbers used and updated the available numbers array each time a number was used or given back. This gave another 5% speed increase.
 
 
-## check node sums - O(n*m)
+### check node sums - O(n*m)
 
 I need a function that goes through every node and sees if the sums are correct/exceeded already.
 This is going to be a O(n*m) problem (n number of nodes, m number of edges), 
@@ -308,10 +308,10 @@ bool checknodesums() {
 }
 ```
 
-## check node sums - O(m+n)
+### check node sums - O(m+n)
 It might be possible..?
 
-## put a number and see if it works
+### put a number and see if it works
 Here is where the backtracking magic happens. 
 
 I'll put the next available number and see if the sums are still good.
@@ -320,10 +320,11 @@ If not, remove the number and try another one.
 
 
 
-## results
+### results
 
 On my outdated Celeron N4100 this runs in ~2.4 seconds.
 Brute forcing this problem seemed to be okay.
+In the end, the printing of millions of rows was sloing things down.
 
 At first I got a larger list of matches. But remember? 
 There were special conditions that I neglected.
@@ -334,14 +335,21 @@ With manual visual checking of the results, I got the following:
 - for edge J-I also got numbers >8. I added a condition that disallows numbers >8 for this node
 - finally, I was down to two solutions that had E-f and C-F swapped. Only one of them matched the special conditions for nodes E amd C. 
 
+
 ## thoughts
 
-- that was a fun exercise and I took a few detours in adding checks and more debugging.
-  In the end, the printing of millins of rows was sloing things down.
+- That was a fun exercise and I took a few detours in adding checks and more debugging.
+  It is rare, that I'm able to spend a rainy day at the computer and dig deep into a challenge.
+    
 
-- I'm repeating a lot of computation. It was good to start this way and implement checks all over the place. It might be even quicker to keep track of the sum of each node.
-- that might even run well on a microcontroller!
+- I'm still repeating a lot of computation. 
+  It was good to start this way and implement checks all over the place.
+  
+- That code might even run well on a microcontroller!
 
+- I'm curious about other solutions and results. 
+  I would be happy to see and discuss other solutions and I'm certainly willing to share my code!
+  let me know of a [BRC](https://1brc.dev/) type of scoreboard.
 
-Please contact me if anything is unclear - I would be happy to hear your results!
+Please contact me if anything is unclear 
 
