@@ -6,7 +6,7 @@ This is my writeup of how I approached this puzzle.
 I assume you are familiar with the instructions.
 Spoiler warning: I won't post the solution, but I'm certainly going to reveal clues.
 
-![my drawing of this bug](bug.svg)
+![I made a new drawing of this bug with names for the nodes](bug.svg)
 
 
 
