@@ -376,12 +376,15 @@ Edge G-H: the special restriction on this edge can be "solved" manually
 
 - That was a fun exercise and I took a few detours in adding checks and more debugging.
   It is rare, that I'm able to spend a rainy day at the computer and dig deep into a challenge.
-  Why I ended up running an early version for 35 minutes in Python is beyond me.
-  Maybe it's just that I'm feeling more at home with the bytes directly.
 
-- Maybe this is still duplicating computations. I'm out of ideas for now on how to speed up.
+- Python: Why I ended up running an early version of this code for 35 minutes in Python is beyond me.
+  With Python I got to about 10 test in 10msec, with C++ I'm at around 170k tests in 10msec.
+  Don't take this as a Python problem, but rather that I'm feeling more at home with the bits and bytes directly.
+
+- Maybe this is still duplicating computations. I'm out of ideas on how to speed up further.
   It was a good strategy to start with duplicate computation and excessive checks and optimize along the way.
-  I'm curious about other solutions and results. 
+
+- I'm curious about other solutions and results. 
   I would be happy to see and discuss other solutions and I'm certainly willing to share my code!
   Let me know of a [BRC](https://1brc.dev/) type of scoreboard.
 
