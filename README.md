@@ -3,7 +3,9 @@
 Have you seen this puzzle? 
 A number puzzle seemingly from April 2024 [https://www.janestreet.com/bug-byte/] 
 This is my writeup of how I approached this puzzle.
-I assume you are familiar with the instructions.
+
+We need to put numbers 1-24 on the edges of the graph and fulfill some restrictions.
+Some numbers and some sums are given. For more details, I suggest reading the original.
 Spoiler warning: I won't post the solution, but I'm certainly going to reveal clues.
 
 ![I made a new drawing of this bug with names for the nodes](bug.svg)
