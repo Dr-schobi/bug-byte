@@ -168,13 +168,11 @@ This is ripe for a off-by-one adressing problem - I'll better associate a 25 arr
 Using a char for each number is a little excessive, as we would only need a single bit per number only. 
 But using individual bits of a 32bit integer would be much more complex and likely not any faster.
 
-```
+```c
 char numbers[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int numberofnumbers=25;
 
-
-// check which numbers are available
 void updateavailablenumbers() {
     // clear availablenumbers
     for (int i=1; i<numberofnumbers; i++) {
@@ -198,7 +196,6 @@ void updateavailablenumbers() {
     }
     std::cout << std::endl;
     std::cout << " (" << count << " total)" << std::endl;
-
 }
 ```
 
@@ -228,7 +225,6 @@ The node check involves two aspects:
 - do we still have a 0  weight in the edges? If so, we are not done and the sum will increase in the future
 
 ```c
-// check if we have violated a sum
 bool checknodesum(int node) {
     totalcount ++;
 
@@ -319,7 +315,6 @@ void fillandtest(int pos) {
         // roll back
         numbers[n] = 1;
         conns[pos][2] = 0;
-
     }
 }
 ```
@@ -328,6 +323,7 @@ void fillandtest(int pos) {
 
 Okay - finally the main function for calling all the others:
 ```c
+totalcount = 0; // show how many checks we performed
 int main() {
    // prepare correct indices, 'A' -> 0
    for (int i=0; i<24; i++) {
@@ -335,11 +331,11 @@ int main() {
        conns[i][1] -= 'A';
    }
 
-   printnodes();
-   printconns();
-
    // known from restrictions on G-H
    conns[8][2] = 6;
+
+   printnodes();
+   printconns();
 
    updateavailablenumbers();
    fillandtest(0);
@@ -349,7 +345,7 @@ int main() {
 }
 ```
 
-On my outdated Celeron N4100 with Ubuntu 20.04 this now runs in ~0.22 seconds.
+On my outdated Celeron N4100 with Ubuntu 20.04 this now runs in ~0.22 seconds and checks 3.7M node placements.
 Brute forcing this problem seemed to be okay.
 In between, the first succcessful C++ version ran for ~5 seconds,
 but mostly printing of millions of rows was slowing things down.
@@ -389,5 +385,4 @@ Edge G-H: the special restriction on this edge can be "solved" manually
   If you find the readthrough interesting, let me know.
 
 - That code might even run well on a microcontroller!
-
 
